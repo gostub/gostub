@@ -90,10 +90,6 @@ func Run() {
 	log.Fatal(http.ListenAndServe(":8181", nil))
 }
 
-func main() {
-	Run()
-}
-
 func recursiveGetFilePath(path string, method string, contentPaths *[]string) {
 	files, _ := ioutil.ReadDir("." + path)
 	for _, f := range files {
