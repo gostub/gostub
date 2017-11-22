@@ -54,7 +54,6 @@ go get https://github.com/moaible/gostub
 {
   "hello": "world!"
 }
-
 ```
 
 ### response
