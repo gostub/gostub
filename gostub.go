@@ -91,6 +91,9 @@ func Run(port string, outputPath string) {
 		response, _ := ioutil.ReadFile("." + pathPattern + "/" + list.Default.Response)
 		fmt.Fprint(w, string(response))
 	})
+	http.HandleFunc("/gostub/shutdown", func(w http.ResponseWriter, r *http.Request) {
+		log.Fatal("Stop gostub server.")
+	})
 	portAddress := ":" + port
 	log.Fatal(http.ListenAndServe(portAddress, nil))
 }
