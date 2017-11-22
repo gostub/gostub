@@ -2,6 +2,8 @@
 
 Simple http stub server by golang
 
+![gostub](./gostub.png)
+
 ## Usage
 
 ```
@@ -12,3 +14,13 @@ Usage of ./gostub:
     	port number (default "8181")
 ```
 
+## Requirement
+
+Only Go language
+
+## Installation
+
+```sh
+go get  
+
+```
