@@ -73,3 +73,9 @@ $ curl http://localhost:8181/hello/world
   "hello": "world!"
 }
 ```
+
+### Shutdown
+
+```
+$ curl http://localhost:8181/gostub/shutdown
+```
