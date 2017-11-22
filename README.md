@@ -21,6 +21,6 @@ Only Go language
 ## Installation
 
 ```sh
-go get  
+go get https://github.com/moaible/gostub
 
 ```
