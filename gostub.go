@@ -1,4 +1,4 @@
-package gostub
+package main
 
 import (
 	"fmt"
