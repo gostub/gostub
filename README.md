@@ -24,3 +24,53 @@ Only Go language
 go get https://github.com/moaible/gostub
 
 ```
+
+## Example
+
+### `GET /hello/world`
+
+```
+.
+└── hello
+    └── world
+        ├── $GET.json
+        └── response.json
+```
+
+**$GET.json**
+
+```json
+{
+  "default" : {
+    "response": "response.json",
+    "status": 200
+  }
+}
+```
+
+**response.json**
+
+```
+{
+  "hello": "world!"
+}
+
+```
+
+### response
+
+**launch**
+
+```
+$ gostub
+```
+
+**curl**
+
+```sh
+$ curl http://localhost:8181/hello/world
+
+{
+  "hello": "world!"
+}
+```
