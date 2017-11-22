@@ -43,17 +43,21 @@ func (c Content) isMatchRequest(r *http.Request) bool {
 	return true
 }
 
-func Run() {
+func Run(port string, outputPath string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		var pathPatternList []string
 		recursiveGetFilePath("/", r.Method, &pathPatternList)
 		requestPath := r.URL.Path
+		if outputPath != "" {
+			requestPath = "/" + outputPath + requestPath
+		}
 		filteredPathPatternList := filtered(pathPatternList, func(p string) bool {
-			return isMatchRegex("^" + p + "$", requestPath)
+			return isMatchRegex("^" +  p + "$", requestPath)
 		})
 		if len(filteredPathPatternList) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprint(w, "Not found path pattern")
+			fmt.Fprint(w, "Not found path pattern\n")
+			fmt.Fprintf(w, "[pattern]\n (%v)", pathPatternList)
 			return
 		}
 		n := len(filteredPathPatternList)
@@ -87,7 +91,8 @@ func Run() {
 		response, _ := ioutil.ReadFile("." + pathPattern + "/" + list.Default.Response)
 		fmt.Fprint(w, string(response))
 	})
-	log.Fatal(http.ListenAndServe(":8181", nil))
+	portAddress := ":" + port
+	log.Fatal(http.ListenAndServe(portAddress, nil))
 }
 
 func recursiveGetFilePath(path string, method string, contentPaths *[]string) {
