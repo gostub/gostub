@@ -44,13 +44,15 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
-	// TODO コンテンツファイルに合わせてデフォルトのContent-Typeをセットしたい
 	w.Header().Set("Content-Type", "application/json")
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, handler) {
 			w.WriteHeader(handler.Content.Status)
-			// TODO: handler.Responseが '/' から始まっていたらrootを指す
-			response, _ := ioutil.ReadFile("." + matchPattern + "/" + handler.Content.Body)
+			bodyFilePath := matchPattern + "/" + handler.Content.Body
+			if strings.HasPrefix(handler.Content.Body, "/") {
+				bodyFilePath = "/" + g.outputPath + handler.Content.Body
+			}
+			response, _ := ioutil.ReadFile("." + bodyFilePath)
 			fmt.Fprint(w, string(response))
 			return
 		}
@@ -58,7 +60,12 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: header、cookieも付けられるように改良
 	w.WriteHeader(list.Default.Status)
-	response, _ := ioutil.ReadFile("." + matchPattern + "/" + list.Default.Body)
+	bodyFilePath := matchPattern + "/" + list.Default.Body
+	if strings.HasPrefix(list.Default.Body, "/") {
+		bodyFilePath = "/" + g.outputPath + list.Default.Body
+	}
+	response, _ := ioutil.ReadFile("." + bodyFilePath)
+	fmt.Printf("bodyFilePath: %v\n", bodyFilePath)
 	fmt.Fprint(w, string(response))
 }
 
