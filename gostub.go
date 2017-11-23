@@ -47,26 +47,12 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, handler) {
-			w.WriteHeader(handler.Content.Status)
-			bodyFilePath := matchPattern + "/" + handler.Content.Body
-			if strings.HasPrefix(handler.Content.Body, "/") {
-				bodyFilePath = "/" + g.outputPath + handler.Content.Body
-			}
-			response, _ := ioutil.ReadFile("." + bodyFilePath)
-			fmt.Fprint(w, string(response))
+			g.WriteContent(w, matchPattern, handler.Content)
 			return
 		}
 	}
-
 	// TODO: header、cookieも付けられるように改良
-	w.WriteHeader(list.Default.Status)
-	bodyFilePath := matchPattern + "/" + list.Default.Body
-	if strings.HasPrefix(list.Default.Body, "/") {
-		bodyFilePath = "/" + g.outputPath + list.Default.Body
-	}
-	response, _ := ioutil.ReadFile("." + bodyFilePath)
-	fmt.Printf("bodyFilePath: %v\n", bodyFilePath)
-	fmt.Fprint(w, string(response))
+	g.WriteContent(w, matchPattern, list.Default)
 }
 
 func (g *Gostub) RecursiveGetFilePath(method string) []string {
@@ -108,6 +94,19 @@ func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, err
 	// FIXME とりあえず一番最後のpathを指定
 	n := len(filteredPathPatternList)
 	return &filteredPathPatternList[n-1], nil
+}
+
+func (g *Gostub) WriteContent(w http.ResponseWriter, pattern string, content models.Content) {
+	bodyFilePath := pattern + "/" + content.Body
+	if strings.HasPrefix(content.Body, "/") {
+		bodyFilePath = "/" + g.outputPath + content.Body
+	}
+	w.WriteHeader(content.Status)
+	for k, v := range content.Header {
+		w.Header().Add(k, v)
+	}
+	response, _ := ioutil.ReadFile("." + bodyFilePath)
+	fmt.Fprint(w, string(response))
 }
 
 func handleShutdown(w http.ResponseWriter, r *http.Request) {
