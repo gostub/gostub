@@ -10,19 +10,8 @@ import (
 	"encoding/json"
 	"strings"
 	"errors"
+	"github.com/gostub/gostub/models"
 )
-
-type ContentList struct {
-	Default 	Content		`json:"default"`
-	Handlers    []Content  	`json:"handlers"`
-}
-
-type Content struct {
-	Response 	string 				`json:"response"`
-	Status 		int 				`json:"status"`
-	Header 		map[string]string 	`json:"header"`
-	Param 		map[string]string 	`json:"param"`
-}
 
 type Gostub struct {
 	port string
@@ -53,15 +42,15 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "Invalid path content (%v)", contentPath)
 		return
 	}
-	list := new(ContentList)
+	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
 	// TODO コンテンツファイルに合わせてデフォルトのContent-Typeをセットしたい
 	w.Header().Set("Content-Type", "application/json")
 	for _, handler := range list.Handlers {
-		if handler.isMatchRequest(r) {
+		if isMatchRequest(r, handler) {
 			w.WriteHeader(handler.Status)
 			// TODO: handler.Responseが '/' から始まっていたらrootを指す
-			response, _ := ioutil.ReadFile("." + matchPattern + "/" + handler.Response)
+			response, _ := ioutil.ReadFile("." + matchPattern + "/" + handler.Content.Body)
 			fmt.Fprint(w, string(response))
 			return
 		}
@@ -69,7 +58,7 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 
 	// TODO: header、cookieも付けられるように改良
 	w.WriteHeader(list.Default.Status)
-	response, _ := ioutil.ReadFile("." + matchPattern + "/" + list.Default.Response)
+	response, _ := ioutil.ReadFile("." + matchPattern + "/" + list.Default.Body)
 	fmt.Fprint(w, string(response))
 }
 
@@ -118,13 +107,13 @@ func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	log.Fatal("Stop gostub server.")
 }
 
-func (c Content) isMatchRequest(r *http.Request) bool {
-	for k ,v := range c.Header {
+func isMatchRequest(r *http.Request, handler models.Handler) bool {
+	for k ,v := range handler.Header {
 		if !isMatchRegex(v, r.Header.Get(k)) {
 			return false
 		}
 	}
-	for k ,v := range c.Param {
+	for k ,v := range handler.Param {
 		if r.Method == http.MethodGet {
 			if !isMatchRegex(v, r.URL.Query().Get(k)) {
 				return false
