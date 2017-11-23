@@ -44,14 +44,12 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
-	w.Header().Set("Content-Type", "application/json")
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, handler) {
 			g.WriteContent(w, matchPattern, handler.Content)
 			return
 		}
 	}
-	// TODO: header、cookieも付けられるように改良
 	g.WriteContent(w, matchPattern, list.Default)
 }
 
@@ -101,10 +99,18 @@ func (g *Gostub) WriteContent(w http.ResponseWriter, pattern string, content mod
 	if strings.HasPrefix(content.Body, "/") {
 		bodyFilePath = "/" + g.outputPath + content.Body
 	}
-	w.WriteHeader(content.Status)
 	for k, v := range content.Header {
 		w.Header().Add(k, v)
 	}
+	for k, v := range content.Cookie {
+		cookie := &http.Cookie{
+			Name: k,
+			Value: v,
+		}
+		http.SetCookie(w, cookie)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(content.Status)
 	response, _ := ioutil.ReadFile("." + bodyFilePath)
 	fmt.Fprint(w, string(response))
 }
