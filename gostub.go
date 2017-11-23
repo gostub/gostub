@@ -115,6 +115,23 @@ func (g *Gostub) SetContent(w http.ResponseWriter, pattern string, content model
 	fmt.Fprint(w, string(response))
 }
 
+func (g *Gostub) IsMatchRoute(route string, path string) (bool, map[string]string) {
+	splitRoute := strings.Split(route, "/")
+	splitPath := strings.Split(path, "/")
+	params := map[string]string{}
+	for idx, pathNode := range splitPath {
+		if len(splitRoute)-1 < idx {
+			return false, nil
+		}
+		routeNode := splitRoute[idx]
+		if routeNode != pathNode && !strings.HasPrefix(routeNode, ":") {
+			return false, nil
+		}
+		params[routeNode[1:]] = pathNode
+	}
+	return true, params
+}
+
 func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	log.Fatal("Stop gostub server.")
 }
