@@ -46,11 +46,11 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	json.Unmarshal(content, &list)
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, handler) {
-			g.WriteContent(w, matchPattern, handler.Content)
+			g.SetContent(w, matchPattern, handler.Content)
 			return
 		}
 	}
-	g.WriteContent(w, matchPattern, list.Default)
+	g.SetContent(w, matchPattern, list.Default)
 }
 
 func (g *Gostub) RecursiveGetFilePath(method string) []string {
@@ -94,7 +94,7 @@ func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, err
 	return &filteredPathPatternList[n-1], nil
 }
 
-func (g *Gostub) WriteContent(w http.ResponseWriter, pattern string, content models.Content) {
+func (g *Gostub) SetContent(w http.ResponseWriter, pattern string, content models.Content) {
 	bodyFilePath := pattern + "/" + content.Body
 	if strings.HasPrefix(content.Body, "/") {
 		bodyFilePath = "/" + g.outputPath + content.Body
