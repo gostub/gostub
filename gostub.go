@@ -121,7 +121,7 @@ func isMatchRequest(r *http.Request, handler models.Handler) bool {
 		}
 	}
 	for k ,v := range handler.Param {
-		if r.Method == http.MethodGet {
+		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodDelete {
 			if !isMatchRegex(v, r.URL.Query().Get(k)) {
 				return false
 			}
