@@ -48,7 +48,7 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, handler) {
-			w.WriteHeader(handler.Status)
+			w.WriteHeader(handler.Content.Status)
 			// TODO: handler.Responseが '/' から始まっていたらrootを指す
 			response, _ := ioutil.ReadFile("." + matchPattern + "/" + handler.Content.Body)
 			fmt.Fprint(w, string(response))
