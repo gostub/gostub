@@ -14,7 +14,7 @@ type Content struct {
 
 type Handler struct {
 	Content 	Content 			`json:"content"`
-	Status 		int 				`json:"status"`
 	Header 		map[string]string 	`json:"header"`
+	Path 		map[string]string   `json:"path"`
 	Param 		map[string]string 	`json:"param"`
 }
