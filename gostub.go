@@ -28,7 +28,7 @@ func (g *Gostub) Run() {
 func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	pathPatternList := g.RecursiveGetFilePath(r.Method)
 	requestPath := r.URL.Path
-	result, matchError := g.MatchRoute(pathPatternList, requestPath)
+	result, params ,matchError := g.MatchRoute(pathPatternList, requestPath)
 	if matchError != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Not found path content (%v)", requestPath)
@@ -45,7 +45,8 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
 	for _, handler := range list.Handlers {
-		if isMatchRequest(r, handler) {
+		if isMatchRequest(r, params, handler) {
+			fmt.Println("handler request match")
 			g.SetContent(w, matchPattern, handler.Content)
 			return
 		}
@@ -79,19 +80,25 @@ func (g *Gostub) RootPath() string {
 	return fmt.Sprintf("/%v/", g.outputPath)
 }
 
-func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, error) {
+func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, map[string]string, error) {
 	if g.outputPath != "" {
 		requestPath = "/" + g.outputPath + requestPath
 	}
-	filteredPathPatternList := filtered(pathList, func(p string) bool {
-		return isMatchRegex("^" +  p + "$", requestPath)
-	})
+	var filteredPathPatternList []string
+	var filteredPathParameters []map[string]string
+	for _, path := range pathList {
+		ret, params := g.IsMatchRoute(path, requestPath)
+		if ret {
+			filteredPathPatternList = append(filteredPathPatternList, path)
+			filteredPathParameters = append(filteredPathParameters, params)
+		}
+	}
 	if len(filteredPathPatternList) == 0 {
-		return nil, errors.New("not found route")
+		return nil, nil, errors.New("not found route")
 	}
 	// FIXME とりあえず一番最後のpathを指定
 	n := len(filteredPathPatternList)
-	return &filteredPathPatternList[n-1], nil
+	return &filteredPathPatternList[n-1], filteredPathParameters[n-1], nil
 }
 
 func (g *Gostub) SetContent(w http.ResponseWriter, pattern string, content models.Content) {
@@ -127,7 +134,9 @@ func (g *Gostub) IsMatchRoute(route string, path string) (bool, map[string]strin
 		if routeNode != pathNode && !strings.HasPrefix(routeNode, ":") {
 			return false, nil
 		}
-		params[routeNode[1:]] = pathNode
+		if strings.HasPrefix(routeNode, ":") {
+			params[routeNode[1:]] = pathNode
+		}
 	}
 	return true, params
 }
@@ -136,34 +145,29 @@ func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	log.Fatal("Stop gostub server.")
 }
 
-func isMatchRequest(r *http.Request, handler models.Handler) bool {
+func isMatchRequest(request *http.Request, params map[string]string, handler models.Handler) bool {
+	for k ,v := range handler.Path {
+		if !isMatchRegex(v, params[k]) {
+			return false
+		}
+	}
 	for k ,v := range handler.Header {
-		if !isMatchRegex(v, r.Header.Get(k)) {
+		if !isMatchRegex(v, request.Header.Get(k)) {
 			return false
 		}
 	}
 	for k ,v := range handler.Param {
-		if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodDelete {
-			if !isMatchRegex(v, r.URL.Query().Get(k)) {
+		if request.Method == http.MethodGet || request.Method == http.MethodHead || request.Method == http.MethodDelete {
+			if !isMatchRegex(v, request.URL.Query().Get(k)) {
 				return false
 			}
-		} else if r.Method == http.MethodPost {
-			if !isMatchRegex(v, r.PostForm.Get(k)) {
+		} else if request.Method == http.MethodPost {
+			if !isMatchRegex(v, request.PostForm.Get(k)) {
 				return false
 			}
 		}
 	}
 	return true
-}
-
-func filtered(strings []string, filter func(string,) bool) []string {
-	var res []string
-	for _, path := range strings {
-		if filter(path) {
-			res = append(res, path)
-		}
-	}
-	return res
 }
 
 func exists(filename string) bool {
