@@ -18,5 +18,9 @@ func init() {
 func main() {
 	fmt.Println("Start gostub server...")
 	fmt.Printf("port: %v, output: %v\n", *portOption, *outputPathOption)
-	Run(*portOption, *outputPathOption)
+	gostub := Gostub{
+		port:       *portOption,
+		outputPath: *outputPathOption,
+	}
+	gostub.Run()
 }
