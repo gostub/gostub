@@ -44,7 +44,7 @@ Usage of gostub:
 ```json
 {
   "default" : {
-    "response": "response.json",
+    "body": "response.json",
     "status": 200
   }
 }
