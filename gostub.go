@@ -162,7 +162,7 @@ func isMatchRequest(request *http.Request, params map[string]string, handler mod
 				return false
 			}
 		} else if request.Method == http.MethodPost {
-			if !isMatchRegex(v, request.PostForm.Get(k)) {
+			if !isMatchRegex(v, request.FormValue(k)) {
 				return false
 			}
 		}
