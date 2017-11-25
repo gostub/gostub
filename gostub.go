@@ -47,14 +47,17 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
 	reqParam := requestParameter(r)
+	fmt.Printf("\nreceive request: [%v] %v\n", r.Method, r.URL.Path)
+	fmt.Printf("request parameter: %v\n", reqParam)
+	fmt.Printf("path parameter: %v\n", pathParams)
 	for _, handler := range list.Handlers {
 		if isMatchRequest(r, pathParams, reqParam, handler) {
-			fmt.Printf("handle pattern: \n%+v\n", handler)
+			fmt.Printf("handle pattern: %+v\n", handler.Content.Body)
 			g.SetContent(w, matchPattern, handler.Content)
 			return
 		}
 	}
-	fmt.Printf("default pattern: \n%+v\n", matchPattern)
+	fmt.Printf("default pattern: %+v\n", list.Default.Body)
 	g.SetContent(w, matchPattern, list.Default)
 }
 
