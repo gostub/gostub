@@ -11,6 +11,8 @@ import (
 	"strings"
 	"errors"
 	"github.com/gostub/gostub/models"
+	"io"
+	"net/url"
 )
 
 type Gostub struct {
@@ -28,9 +30,9 @@ func (g *Gostub) Run() {
 func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	pathPatternList := g.RecursiveGetFilePath(r.Method)
 	requestPath := r.URL.Path
-	result, params ,matchError := g.MatchRoute(pathPatternList, requestPath)
+	result, pathParams, matchError := g.MatchRoute(pathPatternList, requestPath)
 	if matchError != nil {
-		w.WriteHeader(http.StatusBadRequest)
+		w.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(w, "Not found path content (%v)", requestPath)
 		return
 	}
@@ -44,13 +46,15 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	list := new(models.ContentList)
 	json.Unmarshal(content, &list)
+	reqParam := requestParameter(r)
 	for _, handler := range list.Handlers {
-		if isMatchRequest(r, params, handler) {
-			fmt.Println("handler request match")
+		if isMatchRequest(r, pathParams, reqParam, handler) {
+			fmt.Printf("handle pattern: \n%+v\n", handler)
 			g.SetContent(w, matchPattern, handler.Content)
 			return
 		}
 	}
+	fmt.Printf("default pattern: \n%+v\n", matchPattern)
 	g.SetContent(w, matchPattern, list.Default)
 }
 
@@ -126,6 +130,9 @@ func (g *Gostub) IsMatchRoute(route string, path string) (bool, map[string]strin
 	splitRoute := strings.Split(route, "/")
 	splitPath := strings.Split(path, "/")
 	params := map[string]string{}
+	if len(splitRoute) != len(splitPath) {
+		return false, nil
+	}
 	for idx, pathNode := range splitPath {
 		if len(splitRoute)-1 < idx {
 			return false, nil
@@ -145,9 +152,43 @@ func handleShutdown(w http.ResponseWriter, r *http.Request) {
 	log.Fatal("Stop gostub server.")
 }
 
-func isMatchRequest(request *http.Request, params map[string]string, handler models.Handler) bool {
+func requestParameter(r *http.Request) map[string]string {
+	if r.Method == http.MethodPost {
+		return postParameter(r.Body)
+	} else if r.Method == http.MethodGet || r.Method == http.MethodHead || r.Method == http.MethodDelete {
+		params := getParameter(r.URL.Query())
+		return params
+	}
+	return map[string]string{}
+}
+
+func getParameter(query url.Values) map[string]string {
+	var queryParams = map[string]string{}
+	for k := range query {
+		queryParams[k] = query.Get(k)
+	}
+	return queryParams
+}
+
+func postParameter(b io.ReadCloser) map[string]string {
+	var postParamsBox map[string]interface{}
+	if err := json.NewDecoder(b).Decode(&postParamsBox); err != nil {
+		return map[string]string{}
+	}
+	var postParams = map[string]string{}
+	for k, v := range postParamsBox {
+		vs := fmt.Sprint(v)
+		postParams[k] = vs
+	}
+	return postParams
+}
+
+func isMatchRequest(request *http.Request, pathParams map[string]string, reqParams map[string]string, handler models.Handler) bool {
+	if len(handler.Path) + len(handler.Header) + len(handler.Param) == 0 {
+		return false
+	}
 	for k ,v := range handler.Path {
-		if !isMatchRegex(v, params[k]) {
+		if !isMatchRegex(v, pathParams[k]) {
 			return false
 		}
 	}
@@ -157,14 +198,8 @@ func isMatchRequest(request *http.Request, params map[string]string, handler mod
 		}
 	}
 	for k ,v := range handler.Param {
-		if request.Method == http.MethodGet || request.Method == http.MethodHead || request.Method == http.MethodDelete {
-			if !isMatchRegex(v, request.URL.Query().Get(k)) {
-				return false
-			}
-		} else if request.Method == http.MethodPost {
-			if !isMatchRegex(v, request.FormValue(k)) {
-				return false
-			}
+		if !isMatchRegex(v, reqParams[k]) {
+			return false
 		}
 	}
 	return true
