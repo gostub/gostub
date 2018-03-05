@@ -191,17 +191,17 @@ func isMatchRequest(request *http.Request, pathParams map[string]string, reqPara
 		return false
 	}
 	for k ,v := range handler.Path {
-		if !isMatchRegex(v, pathParams[k]) {
+		if !isMatchRegex(fmt.Sprintf("%v", v), pathParams[k]) {
 			return false
 		}
 	}
 	for k ,v := range handler.Header {
-		if !isMatchRegex(v, request.Header.Get(k)) {
+		if !isMatchRegex(fmt.Sprintf("%v", v), request.Header.Get(k)) {
 			return false
 		}
 	}
 	for k ,v := range handler.Param {
-		if !isMatchRegex(v, reqParams[k]) {
+		if !isMatchRegex(fmt.Sprintf("%v", v), reqParams[k]) {
 			return false
 		}
 	}

@@ -13,8 +13,8 @@ type Content struct {
 }
 
 type Handler struct {
-	Content 	Content 			`json:"content"`
-	Header 		map[string]string 	`json:"header"`
-	Path 		map[string]string   `json:"path"`
-	Param 		map[string]string 	`json:"param"`
+	Content 	Content 			    `json:"content"`
+	Header 		map[string]interface{}  `json:"header"`
+	Path 		map[string]interface{}  `json:"path"`
+	Param 		map[string]interface{} 	`json:"param"`
 }
