@@ -125,6 +125,7 @@ func (g *Gostub) SetContent(w http.ResponseWriter, pattern string, content model
 		http.SetCookie(w, cookie)
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(content.Status)
 	response, _ := ioutil.ReadFile("." + bodyFilePath)
 	fmt.Fprint(w, string(response))
