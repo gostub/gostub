@@ -1,29 +1,30 @@
-package main
+package gostub
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
-	"io/ioutil"
+	"net/url"
 	"os"
 	"regexp"
-	"encoding/json"
 	"strings"
-	"errors"
+
 	"github.com/gostub/gostub/models"
-	"io"
-	"net/url"
 )
 
 type Gostub struct {
-	port string
-	outputPath string
+	Port       string
+	OutputPath string
 }
 
 func (g *Gostub) Run() {
 	http.HandleFunc("/", g.HandleStubRequest)
 	http.HandleFunc("/gostub/shutdown", handleShutdown)
-	portAddress := ":" + g.port
+	portAddress := ":" + g.Port
 	log.Fatal(http.ListenAndServe(portAddress, nil))
 }
 
@@ -73,7 +74,7 @@ func (g *Gostub) recursiveGetFilePath(path string, method string, pathList *[]st
 		if f.IsDir() {
 			subPath := path + f.Name() + "/"
 			if exists(subPath + "$" + method + ".json") {
-				*pathList = append(*pathList, path + f.Name())
+				*pathList = append(*pathList, path+f.Name())
 			}
 			g.recursiveGetFilePath(subPath, method, pathList)
 		}
@@ -81,15 +82,15 @@ func (g *Gostub) recursiveGetFilePath(path string, method string, pathList *[]st
 }
 
 func (g *Gostub) RootPath() string {
-	if g.outputPath == "" {
+	if g.OutputPath == "" {
 		return "/"
 	}
-	return fmt.Sprintf("/%v/", g.outputPath)
+	return fmt.Sprintf("/%v/", g.OutputPath)
 }
 
 func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, map[string]string, error) {
-	if g.outputPath != "" {
-		requestPath = "/" + g.outputPath + requestPath
+	if g.OutputPath != "" {
+		requestPath = "/" + g.OutputPath + requestPath
 	}
 	var filteredPathPatternList []string
 	var filteredPathParameters []map[string]string
@@ -111,19 +112,20 @@ func (g *Gostub) MatchRoute(pathList []string, requestPath string) (*string, map
 func (g *Gostub) SetContent(w http.ResponseWriter, pattern string, content models.Content) {
 	bodyFilePath := pattern + "/" + content.Body
 	if strings.HasPrefix(content.Body, "/") {
-		bodyFilePath = "/" + g.outputPath + content.Body
+		bodyFilePath = "/" + g.OutputPath + content.Body
 	}
 	for k, v := range content.Header {
 		w.Header().Add(k, v)
 	}
 	for k, v := range content.Cookie {
 		cookie := &http.Cookie{
-			Name: k,
+			Name:  k,
 			Value: v,
 		}
 		http.SetCookie(w, cookie)
 	}
 	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.WriteHeader(content.Status)
 	response, _ := ioutil.ReadFile("." + bodyFilePath)
 	fmt.Fprint(w, string(response))
@@ -187,20 +189,20 @@ func postParameter(b io.ReadCloser) map[string]string {
 }
 
 func isMatchRequest(request *http.Request, pathParams map[string]string, reqParams map[string]string, handler models.Handler) bool {
-	if len(handler.Path) + len(handler.Header) + len(handler.Param) == 0 {
+	if len(handler.Path)+len(handler.Header)+len(handler.Param) == 0 {
 		return false
 	}
-	for k ,v := range handler.Path {
+	for k, v := range handler.Path {
 		if !isMatchRegex(fmt.Sprintf("%v", v), pathParams[k]) {
 			return false
 		}
 	}
-	for k ,v := range handler.Header {
+	for k, v := range handler.Header {
 		if !isMatchRegex(fmt.Sprintf("%v", v), request.Header.Get(k)) {
 			return false
 		}
 	}
-	for k ,v := range handler.Param {
+	for k, v := range handler.Param {
 		if !isMatchRegex(fmt.Sprintf("%v", v), reqParams[k]) {
 			return false
 		}
