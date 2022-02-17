@@ -38,7 +38,7 @@ func (g *Gostub) HandleStubRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	matchPattern := *result
-	contentPath := matchPattern + "/$" + strings.ToUpper(r.Method) + ".json"
+	contentPath := matchPattern + "/@" + strings.ToUpper(r.Method) + ".json"
 	content, readError := ioutil.ReadFile("." + contentPath)
 	if readError != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -73,7 +73,7 @@ func (g *Gostub) recursiveGetFilePath(path string, method string, pathList *[]st
 	for _, f := range files {
 		if f.IsDir() {
 			subPath := path + f.Name() + "/"
-			if exists(subPath + "$" + method + ".json") {
+			if exists(subPath + "@" + method + ".json") {
 				*pathList = append(*pathList, path+f.Name())
 			}
 			g.recursiveGetFilePath(subPath, method, pathList)
